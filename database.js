@@ -318,4 +318,4 @@ module.exports = { database };
 // ("Nhima"), ("Cash"), ("Swipe"), ("TT"), ("SES"), ("Liberty"), ("Medlink")
 
 // database.users.getAll();
-// database.users.authorizeUser("admin").catch((error) => console.log(error));
+// database.users.authorizeUser("1").catch((error) => console.log(error));
