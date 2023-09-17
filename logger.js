@@ -2,15 +2,25 @@ const winston = require("winston");
 
 const logger = winston.createLogger({
     level: "info",
+    level: "error",
     format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.printf(
-          (info) => `${info.timestamp} ${info.level}: ${info.message}`
-        )
+      winston.format.timestamp({
+        format: 'YYYY-MM-DD HH:mm:ss Z',
+      }),
+      winston.format.printf(
+        (info) => `${info.timestamp}. ${info.level}: ${info.message}`
       ),
+    ),
     transports: [
         new winston.transports.Console(),
-        new winston.transports.File( {filename: 'logs/info.log'} ),
+        new winston.transports.File({
+          level: "info",
+          filename: 'logs/info.log'
+        }),
+        new winston.transports.File({
+          level: "error",
+          filename: 'logs/error.log'
+        }),
         // fileRotateTransport
     ],
     exceptionHandlers: [
