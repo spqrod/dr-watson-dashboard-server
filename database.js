@@ -133,10 +133,10 @@ const database = {
         },
         importAppointmentsFromCSVFile() {
             const csvFilePath = "./import/appointments.csv";
-            csvtojson()
+            return csvtojson()
                 .fromFile(csvFilePath)
                 .then(appointmentsArray => appointmentsArray.forEach(appointment => {
-                    if ((appointment.date) && (appointment.firstName || appointment.lastName) && (appointment.firstName == "X") && (appointment.firstName == "x") && (appointment.lastName == "X") && (appointment.lastName == "x"))
+                    if ((appointment.date) && (appointment.firstName || appointment.lastName) && (appointment.firstName != "X") && (appointment.firstName != "x") && (appointment.lastName != "X") && (appointment.lastName != "x"))
                         database.appointments.addNew(appointment);
                 }));
         }
