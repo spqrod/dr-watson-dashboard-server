@@ -25,33 +25,8 @@ const port = process.env.PORT || 80;
 
 const dateFormatForDB = "YYYY-MM-DD";
 
-const timeSlotsForAppointments = [
-    "08:00",
-    "08:30",
-    "09:00",
-    "09:30",
-    "10:00",
-    "10:30",
-    "11:00",
-    "11:30",
-    "12:00",
-    "12:30",
-    "13:00",
-    "13:30",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-];
-
 function convertTimeFormatFromHHMMSSToHHMM(time) {
     return time.substring(0, 5);
-};
-
-function convertDateFormatToDDMMYYYY(date) {
-    return dayjs(date).format("DD.MM.YYYY");
 };
 
 app.use((req, res, next) => {
@@ -64,12 +39,42 @@ app.get("/authorization", authorizeToken, (req, res) => {
 });
 
 app.get("/appointments", authorizeToken, (req, res) => {
+
+    function compareAppointmentsOnTime(appointment1, appointment2) {
+        if (appointment1.time > appointment2.time) 
+            return 1;
+        else if (appointment1.time < appointment2.time) 
+            return -1;
+        else 
+            return 0;
+    };
+
+    function combineAppointmentsAndTimeSlotsArrays(appointments, timeSlots, date) {
+        appointments.forEach(appointment => {
+            appointment.time = convertTimeFormatFromHHMMSSToHHMM(appointment.time);
+
+            timeSlots.forEach(timeSlot => {
+                timeSlot.date = date;
+                if (timeSlot.time == appointment.time) {
+                    const index = timeSlots.indexOf(timeSlot);
+                    timeSlots.splice(index, 1);
+                }
+            });
+
+        });
+        const appointmentsWithTimeSlots = appointments.concat(timeSlots);
+        return appointmentsWithTimeSlots;
+    };
+
     if (req.query.date) {
         const date = sanitizeString(req.query.date);
-        database.appointments.getForDate(date)
-            .then(appointments => {
-                appointments.forEach(appointment => appointment.time = convertTimeFormatFromHHMMSSToHHMM(appointment.time));
-                res.json(appointments);
+        Promise.all([database.timeSlots.getAll(), database.appointments.getForDate(date)])
+            .then(values => {
+                const timeSlots = values[0];
+                const appointments = values[1];
+                const appointmentsWithTimeSlots = combineAppointmentsAndTimeSlotsArrays(appointments, timeSlots, date);
+                appointmentsWithTimeSlots.sort(compareAppointmentsOnTime);
+                res.json(appointmentsWithTimeSlots);
             });
     } else if (req.query.patientFile) {
         const patientFile = decodeURIComponent(req.query.patientFile);
@@ -92,6 +97,9 @@ app.get("/appointments", authorizeToken, (req, res) => {
             })
             .catch(error => logger.info(error));
     }
+
+
+  
 });
 
 app.post("/appointments", authorizeToken, (req, res) => {

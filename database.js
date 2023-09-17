@@ -301,9 +301,37 @@ const database = {
             pool.query(query, params);
         },
     },
+    timeSlots: {
+        addNew(...timeSlots) {
+            timeSlotsArray.forEach(timeSlot => {
+                const query = "insert into timeSlots (id, time) values (?, ?)";
+                pool.query(query, [timeSlot.id, timeSlot.time])
+                    .catch(error => logger.info(error));
+            });
+        },
+        createTable() {
+            const query = "create table timeSlots (id int not null primary key, time varchar(255) unique, isEmptyTimeSlot boolean default 1);";
+            pool.query(query);
+        },
+        dropTable() {
+            const query = "drop table timeSlots";
+            pool.query(query);
+        },
+        getAll() {
+            const query = "select * from timeSlots";
+            return pool.query(query)
+                .then(res => res[0])
+                .catch(error => logger.info(error));
+        },
+    }
 }
 
 module.exports = { database };
+
+// database.timeSlots.createTable();
+// database.timeSlots.dropTable();
+database.timeSlots.getAll().then(res => console.log(res));
+// database.timeSlots.addNew(timeSlotsArray);
 
 // database.analytics.countTreatment("Filling", 7, 2023);
 // database.analytics.sum("Nhima", 8, 2023);
