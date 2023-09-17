@@ -166,7 +166,11 @@ const database = {
         },
         getAll() {
             const query = "select * from users";
-            pool.query(query).then((res) => console.log(res[0]));
+            logger.info("TEST INFO");
+            // logger.error("TEST ERROR");
+            return pool.query(query)
+                .then(res => res[0])
+                .catch(error => logger.error(error));
         },
         deleteAll() {
             const query = "delete from users";
@@ -318,7 +322,7 @@ const database = {
             pool.query(query);
         },
         getAll() {
-            const query = "select * from timeSlots";
+            const query = "select * from timeSlots order by time";
             return pool.query(query)
                 .then(res => res[0])
                 .catch(error => logger.info(error));

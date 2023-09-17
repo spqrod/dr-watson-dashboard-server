@@ -160,7 +160,13 @@ app.get("/taken-time-slots/:selectedDate", authorizeToken, (req, res) => {
 });
 
 app.get("/time-slots/", authorizeToken, (req, res) => {
-
+    database.timeSlots.getAll()
+        .then(timeSlots => {
+            const tempArray = [];
+            timeSlots.forEach(timeSlot => tempArray.push(timeSlot.time))
+            res.json(tempArray);
+        })
+        .catch(error => logger.info(error));
 });
 
 app.get("/patients/:searchString", authorizeToken, (req, res) => {
@@ -305,6 +311,11 @@ app.post("/register", (req, res) => {
     database.users.addNew(username, password, accessLevel)
         .then(() => res.json({ success: true, message: "Registration successful" }))
         .catch(() => res.json({ success: false, message: "Something went wrong" }));
+});
+
+app.get("/users", authorizeToken, checkAccessLevel, (req, res) => {
+    database.users.getAll()
+        .then(users => res.json(users))
 });
 
 app.get("/import-appointments", authorizeToken, checkAccessLevel, (req, res) => {
