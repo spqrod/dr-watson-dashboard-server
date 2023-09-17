@@ -136,7 +136,7 @@ const database = {
             csvtojson()
                 .fromFile(csvFilePath)
                 .then(appointmentsArray => appointmentsArray.forEach(appointment => {
-                    if ((appointment.date) && (appointment.firstName || appointment.lastName))
+                    if ((appointment.date) && (appointment.firstName || appointment.lastName) && (appointment.firstName == "X") && (appointment.firstName == "x") && (appointment.lastName == "X") && (appointment.lastName == "x"))
                         database.appointments.addNew(appointment);
                 }));
         }
@@ -166,8 +166,6 @@ const database = {
         },
         getAll() {
             const query = "select * from users";
-            logger.info("TEST INFO");
-            // logger.error("TEST ERROR");
             return pool.query(query)
                 .then(res => res[0])
                 .catch(error => logger.error(error));
