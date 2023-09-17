@@ -34,6 +34,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// Real network imitation
+app.use((req, res, next) => {
+    setTimeout(() => next(), 1000);
+});
+
 app.get("/authorization", authorizeToken, (req, res) => {
     res.sendStatus(200);
 });
@@ -84,7 +89,7 @@ app.get("/appointments", authorizeToken, (req, res) => {
                     appointment.time = convertTimeFormatFromHHMMSSToHHMM(appointment.time);
                 });
                 res.json(appointments);
-            });        
+            });
     }
     else {
         const searchString = sanitizeString(req.query.searchString);
@@ -152,6 +157,10 @@ app.get("/taken-time-slots/:selectedDate", authorizeToken, (req, res) => {
         timeSlots.forEach(item => takenTimeSlots.push(convertTimeFormatFromHHMMSSToHHMM(item.time)));
         res.json(takenTimeSlots);
     });
+});
+
+app.get("/time-slots/", authorizeToken, (req, res) => {
+
 });
 
 app.get("/patients/:searchString", authorizeToken, (req, res) => {

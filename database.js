@@ -328,18 +328,9 @@ const database = {
 
 module.exports = { database };
 
-// database.timeSlots.createTable();
-// database.timeSlots.dropTable();
-database.timeSlots.getAll().then(res => console.log(res));
-// database.timeSlots.addNew(timeSlotsArray);
 
 // database.analytics.countTreatment("Filling", 7, 2023);
 // database.analytics.sum("Nhima", 8, 2023);
-
-// database.doctors.deleteAll();
-
-// database.appointments.deleteAll();
-// database.patients.deleteAll();
 
 // ("CONS"), ("PF"), ("TF"), ("XLA"), ("S"), ("DIS"), ("OP"), ("SP"), ("PI"), ("FA"), ("RCT"), ("TW"), ("CP"), ("IMP"), ("NG"), ("PD"), ("AT"), ("FD"), ("PFM"), ("ZC"), ("IM"), ("JA")
 
