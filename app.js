@@ -36,7 +36,7 @@ app.use((req, res, next) => {
 
 // Real network imitation
 app.use((req, res, next) => {
-    setTimeout(() => next(), 1000);
+    setTimeout(() => next(), 500);
 });
 
 app.get("/authorization", authorizeToken, (req, res) => {
