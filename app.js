@@ -14,6 +14,7 @@ const { database } = require("./database.js");
 const { sanitizeString } = require("./sanitizeString.js");
 const authorizeToken = require("./authorizeToken.js");
 const checkAccessLevel = require("./checkAccessLevel.js");
+const { es } = require("date-fns/locale");
 
 app.use(express.static("build"));
 app.use(express.json());
@@ -29,8 +30,23 @@ function convertTimeFormatFromHHMMSSToHHMM(time) {
     return time.substring(0, 5);
 };
 
+// Log info about request
 app.use((req, res, next) => {
-    logger.info(`Received a ${req.method} request for ${req.url}`);
+    let username = "";
+    const token = req.cookies["token"];
+
+    if (token == null) 
+        username = "Not logged in";
+    else
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, data) => {
+            if (error) 
+                username = "Not authorized";
+            else 
+                username = data.username;
+        });
+        
+    const message = `Received a ${req.method} request for ${req.url} from user: ${username}`;
+    logger.info(message);
     next();
 });
 
@@ -287,7 +303,7 @@ app.post("/login", (req, res) => {
         .then(passwordCheck => {
             if (passwordCheck) {
                 const token = jwt.sign(
-                    { accessLevel }, 
+                    { accessLevel, username }, 
                     process.env.ACCESS_TOKEN_SECRET, 
                     { expiresIn: "2 days" }, 
                     // (err) => logger.info(err)
