@@ -2,7 +2,6 @@ const winston = require("winston");
 
 const logger = winston.createLogger({
     level: "info",
-    level: "error",
     format: winston.format.combine(
       winston.format.timestamp({
         format: 'YYYY-MM-DD HH:mm:ss Z',
