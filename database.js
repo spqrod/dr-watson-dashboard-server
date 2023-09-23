@@ -117,15 +117,15 @@ const database = {
             pool.query(query).then((res) => console.log(res[0]));
         },
         alterTableAppointments() {
-            const query = "alter table appointments drop foreign key appointments_ibfk_1";
-            // const query = "alter table appointments add column patientFile varchar(255)";
-            pool.query(query);
+            // const query = "alter table appointments drop foreign key appointments_ibfk_1";
+            const query = "alter table appointments modify column cost decimal(7,2)";
+            return pool.query(query);
         },
         deleteAll: function() {
             return pool.query("delete from appointments");
         },
         getAll: function() {
-            pool.query("select * from appointments").then(res => console.log(res[0]));
+            return pool.query("select * from appointments").then(response => response[0]);
         },
         dropTable() {
             const query = "drop table appointments";
@@ -136,8 +136,12 @@ const database = {
             return csvtojson()
                 .fromFile(csvFilePath)
                 .then(appointmentsArray => appointmentsArray.forEach(appointment => {
-                    if ((appointment.date) && (appointment.firstName || appointment.lastName) && (appointment.firstName != "X") && (appointment.firstName != "x") && (appointment.lastName != "X") && (appointment.lastName != "x"))
-                        database.appointments.addNew(appointment);
+                    if ((appointment.date) && (appointment.firstName || appointment.lastName) && (appointment.firstName != "X") && (appointment.firstName != "x") && (appointment.lastName != "X") && (appointment.lastName != "x")) {
+                        if ((appointment.cost === "") || (appointment.cost === "paid"))
+                            appointment.cost = 0;
+                        database.appointments.addNew(appointment)
+                            .catch(error => logger.error(error))
+                    }
                 }));
         }
     },
@@ -340,3 +344,8 @@ module.exports = { database };
 
 // database.users.getAll();
 // database.users.authorizeUser("1").catch((error) => console.log(error));
+// database.appointments.describeAppointmentsTable()
+// database.appointments.alterTableAppointments().catch(error => console.log(error));
+// database.appointments.deleteAll()
+// database.appointments.getAll().then(response => console.log(response));
+// database.appointments.importAppointmentsFromCSVFile().catch(error => console.log(error))
