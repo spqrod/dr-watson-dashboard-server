@@ -101,6 +101,7 @@ app.get("/appointments", authorizeToken, (req, res) => {
         const patientFile = decodeURIComponent(req.query.patientFile);
         database.appointments.getForPatient(patientFile)
             .then(appointments => {
+                if (Array.isArray(appointments))
                 appointments.forEach(appointment => {
                     appointment.time = convertTimeFormatFromHHMMSSToHHMM(appointment.time);
                 });
@@ -216,10 +217,13 @@ app.put("/patients", authorizeToken, (req, res) => {
     for (const [key, value] of Object.entries(req.body)) {
         if (value !== null)
             req.body[key] = sanitizeString(String(value));
+        else
+            req.body[key] = "";
     }
     const patient = req.body;
     database.patients.update(patient)
-        .then(() => {
+        .then((response) => {
+            console.log(response)
             res.json({success: true});
         })
         .catch(error => {

@@ -25,22 +25,22 @@ const database = {
     },
     patients: {
         search(searchString) {
-            const query = `select * from patients where concat(firstName, lastName, file, nrc, phone, insuranceId) like "%${searchString}%"`;
+            const query = `select * from patients where concat(firstName, lastName, file, nrc, phone, payment, insuranceId) like "%${searchString}%" order by lastName`;
             return pool.query(query)
                 .then(res => res[0])
         },
         addNew: function(patient) {
-            const query = "insert into patients (firstName, lastName, file, nrc, phone, insuranceId, dateOfBirth, sex, marketing) values (?, ?, ?, ?, ?, ?, ?, ?, ?);";
-            const array = [patient.firstName, patient.lastName, patient.file, patient.nrc, patient.phone, patient.insuranceId, patient.dateOfBirth, patient.sex, patient.marketing];
-            return pool.query(query, array);
+            const query = "insert into patients (firstName, lastName, file, nrc, phone, payment, insuranceId, dateOfBirth, sex, marketing) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+            const array = [patient.firstName, patient.lastName, patient.file, patient.nrc, patient.phone, patient.payment, patient.insuranceId, patient.dateOfBirth, patient.sex, patient.marketing];
+            return pool.query(query, array).catch(error => logger.error(error));
         },
         update: function(patient) {
-            const query = "UPDATE patients SET firstName=?, lastName=?, file=?, nrc=?, phone=?, insuranceId=?, dateOfBirth=?, sex=?, marketing=? WHERE id = ?";
-            const array = [patient.firstName, patient.lastName, patient.file, patient.nrc, patient.phone, patient.insuranceId, patient.dateOfBirth, patient.sex, patient.marketing, patient.id];
-            return pool.query(query, array);
+            const query = "UPDATE patients SET firstName=?, lastName=?, file=?, nrc=?, phone=?, payment=?, insuranceId=?, dateOfBirth=?, sex=?, marketing=? WHERE id = ?";
+            const array = [patient.firstName, patient.lastName, patient.file, patient.nrc, patient.phone, patient.payment, patient.insuranceId, patient.dateOfBirth, patient.sex, patient.marketing, patient.id];
+            return pool.query(query, array).catch(error => logger.error(error));
         },
         delete: function(id) {
-            return pool.query("delete from patients where id=?", id);
+            return pool.query("delete from patients where id=?", id).catch(error => logger.error(error));
         },
         getLastInserted() {
             const query = "select * from patients where id = (select last_insert_id())";
@@ -66,21 +66,22 @@ const database = {
             return pool.query("select * from patients").then(res => console.log(res[0]));
         },
         alterTablePatients() {
-            // const query = "alter table patients modify column id varchar(255) primary key not null default '9999/99'";
+            const query = "alter table patients add column payment varchar(255)";
             // const query = "alter table patients drop primary key;";
             pool.query(query).then(res => console.log(res[0]));
         },
         importPatientsFromCSVFile() {
             const csvFilePath = "./import/patients.csv";
-            csvtojson()
+            return csvtojson()
                 .fromFile(csvFilePath)
-                .then(patientsArray => patientsArray.forEach(patient => {
-                    if (patient.firstName)
-                        if ((patient.dateOfBirth == "") || !dayjs(patient.dateOfBirth).isValid())
-                            patient.dateOfBirth = "1000-01-01";
-                        patient.dateOfBirth = dayjs(patient.dateOfBirth).format(dateFormatForDB);
-                        database.patients.addNew(patient);
-                }));
+                    .then(patientsArray => patientsArray.forEach(patient => {
+                        if (patient.firstName)
+                            if ((patient.dateOfBirth == "") || !dayjs(patient.dateOfBirth).isValid())
+                                patient.dateOfBirth = "1000-01-01";
+                            patient.dateOfBirth = dayjs(patient.dateOfBirth).format(dateFormatForDB);
+                            database.patients.addNew(patient);
+                    }))
+                    .catch(error => logger.error(error));
         }
     },
     appointments: {
@@ -95,7 +96,7 @@ const database = {
         },
         getForPatient(patientFile) {
             const query  = "select id, date, time, firstName, lastName, doctor, treatment, payment, cost, patientFile, phone, comments, noshow from appointments where patientFile = ? order by date, time";
-            return pool.query(query, [patientFile]).then(res => res[0]);
+            return pool.query(query, [patientFile]).then(res => res[0]).catch(error => logger.error(error));
         },
         addNew: function(appointment) {
             return pool.query("insert into appointments (date, time, firstName, lastName, doctor, treatment, payment, cost, patientFile, phone, comments) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", 
@@ -349,3 +350,9 @@ module.exports = { database };
 // database.appointments.deleteAll()
 // database.appointments.getAll().then(response => console.log(response));
 // database.appointments.importAppointmentsFromCSVFile().catch(error => console.log(error))
+// database.patients.alterTablePatients()
+// database.patients.deleteAll()
+
+// database.patients.getAllPatients()
+
+// database.patients.describePatientsTable()
