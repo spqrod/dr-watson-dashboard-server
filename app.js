@@ -66,20 +66,25 @@ app.get("/appointments", authorizeToken, (req, res) => {
     };
 
     function combineAppointmentsAndTimeSlotsArrays(appointments, timeSlots, date) {
-        appointments.forEach(appointment => {
-            appointment.time = convertTimeFormatFromHHMMSSToHHMM(appointment.time);
+        if (appointments.length > 0) {
+            appointments.forEach(appointment => {
+                appointment.time = convertTimeFormatFromHHMMSSToHHMM(appointment.time);
 
-            timeSlots.forEach(timeSlot => {
-                timeSlot.date = date;
-                if (timeSlot.time == appointment.time) {
-                    const index = timeSlots.indexOf(timeSlot);
-                    timeSlots.splice(index, 1);
-                }
+                timeSlots.forEach(timeSlot => {
+                    timeSlot.date = date;
+                    if (timeSlot.time == appointment.time) {
+                        const index = timeSlots.indexOf(timeSlot);
+                        timeSlots.splice(index, 1);
+                    }
+                });
+
             });
-
-        });
-        const appointmentsWithTimeSlots = appointments.concat(timeSlots);
-        return appointmentsWithTimeSlots;
+            const appointmentsWithTimeSlots = appointments.concat(timeSlots);
+            return appointmentsWithTimeSlots;
+        } else {
+            timeSlots.forEach(timeSlot => timeSlot.date = date);
+            return timeSlots;
+        }
     };
 
     if (req.query.date) {
