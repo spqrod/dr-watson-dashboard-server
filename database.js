@@ -119,7 +119,7 @@ const database = {
         },
         alterTableAppointments() {
             // const query = "alter table appointments drop foreign key appointments_ibfk_1";
-            const query = "alter table appointments modify column cost decimal(7,2)";
+            const query = "alter table appointments modify column cost double(10,2)";
             return pool.query(query);
         },
         deleteAll: function() {
@@ -287,13 +287,22 @@ const database = {
                     console.log(`Number of treatments "${treatment}" for month ${month} of year ${year} is ${value}`);
                 });
         },
-        sum(payment, month, year) {
+        getSumsForPayments(payment, month, year) {
             const query = "select sum(cost) from appointments where payment=? and month(date)=? and year(date)=?"
-            pool.query(query, [payment, month, year])
+            return pool.query(query, [payment, month, year])
                 .then(res => {
                     const key = Object.keys(res[0][0])[0];
-                    const value = res[0][0][key];
-                    console.log(`Total sum for ${payment} in month ${month} of ${year} is \n${Math.round(value)}`)
+                    const value = Math.round(res[0][0][key]);
+                    return { "payment": payment, "month": month, "year": year, "value": value};
+                });
+        },
+        getSumsForDoctors(doctor, month, year) {
+            const query = "select sum(cost) from appointments where doctor=? and month(date)=? and year(date)=?"
+            return pool.query(query, [doctor, month, year])
+                .then(res => {
+                    const key = Object.keys(res[0][0])[0];
+                    const value = Math.round(res[0][0][key]);
+                    return { "doctor": doctor, "month": month, "year": year, "value": value };
                 });
         },
         countPatients(month, year) {
@@ -356,3 +365,4 @@ module.exports = { database };
 // database.patients.getAllPatients()
 
 // database.patients.describePatientsTable()
+

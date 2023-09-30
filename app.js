@@ -247,8 +247,78 @@ app.get("/reports", authorizeToken, (req, res) => {
 
 });
 
-app.get("/analytics", authorizeToken, checkAccessLevel, (req, res) => {
+app.get("/analytics/sums-for-payments", authorizeToken, checkAccessLevel, (req, res) => {
 
+    function getSumsForPaymentFor12Months(payment) {
+        const arrayOfPromises = [];
+        for (let i = 1; i <= 12; i++) {
+            arrayOfPromises.push(database.analytics.getSumsForPayments(payment, i, 2023))
+        }
+        return Promise.all(arrayOfPromises);
+    }
+
+    function formatNumberToAddThousandSeparators(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+    
+    function createArrayOfObjectsWithPaymentsName(array) {
+        const arrayOfObjectsWithPaymentsName = []
+        array.forEach(item => {
+            const sums = [];
+            item.forEach( sum => sums.push(formatNumberToAddThousandSeparators(sum.value)))
+            arrayOfObjectsWithPaymentsName.push({ payment: item[0].payment, year: item[0].year, sums: sums });
+        })
+        return arrayOfObjectsWithPaymentsName;
+    }
+    
+    database.payments.getAll()
+        .then(payments => {
+            const arrayOfPromises = [];
+            payments.forEach(payment => arrayOfPromises.push(getSumsForPaymentFor12Months(payment.payment)))
+            return Promise.all(arrayOfPromises);
+        })
+        .then(response => {
+            const arrayOfObjects = createArrayOfObjectsWithPaymentsName(response);
+            res.json(arrayOfObjects);
+        })
+        .catch(error => logger.error(error))
+});
+
+app.get("/analytics/sums-for-doctors", authorizeToken, checkAccessLevel, (req, res) => {
+
+    function getSumsForDoctorFor12Months(doctor) {
+        const arrayOfPromises = [];
+        for (let i = 1; i <= 12; i++) {
+            arrayOfPromises.push(database.analytics.getSumsForDoctors(doctor, i, 2023))
+        }
+        return Promise.all(arrayOfPromises);
+    }
+
+    function formatNumberToAddThousandSeparators(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+    
+    function createArrayOfObjectsWithDoctorsName(array) {
+        const arrayOfObjectsWithDoctorsName = []
+        array.forEach(item => {
+            const sums = [];
+            item.forEach( sum => sums.push(formatNumberToAddThousandSeparators(sum.value)))
+            arrayOfObjectsWithDoctorsName.push({ doctor: item[0].doctor, year: item[0].year, sums: sums });
+        })
+        return arrayOfObjectsWithDoctorsName;
+    }
+    
+    database.doctors.getAll()
+        .then(doctors => {
+            const arrayOfPromises = [];
+            doctors.forEach(doctor => arrayOfPromises.push(getSumsForDoctorFor12Months(doctor.doctor)))
+            return Promise.all(arrayOfPromises);
+        })
+        .then(response => {
+            const arrayOfObjects = createArrayOfObjectsWithDoctorsName(response);
+            res.json(arrayOfObjects);
+        })
+        .catch(error => logger.error(error))
 });
 
 app.get("/settings", authorizeToken, checkAccessLevel, (req, res) => {
