@@ -287,24 +287,73 @@ const database = {
                     console.log(`Number of treatments "${treatment}" for month ${month} of year ${year} is ${value}`);
                 });
         },
-        getSumsForPayments(payment, month, year) {
-            const query = "select sum(cost) from appointments where payment=? and month(date)=? and year(date)=?"
-            return pool.query(query, [payment, month, year])
-                .then(res => {
-                    const key = Object.keys(res[0][0])[0];
-                    const value = Math.round(res[0][0][key]);
-                    return { "payment": payment, "month": month, "year": year, "value": value};
-                });
+
+        getTotalYearlySumsForPayments(year) {
+            const query = "SELECT payment, sum(cost) AS total FROM `appointments` WHERE year(date)=? GROUP BY payment ORDER BY sum(cost) desc";
+            return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error))
         },
-        getSumsForDoctors(doctor, month, year) {
-            const query = "select sum(cost) from appointments where doctor=? and month(date)=? and year(date)=?"
-            return pool.query(query, [doctor, month, year])
-                .then(res => {
-                    const key = Object.keys(res[0][0])[0];
-                    const value = Math.round(res[0][0][key]);
-                    return { "doctor": doctor, "month": month, "year": year, "value": value };
-                });
+        getMonthlySumsForPayment(payment, year) {
+            const query = `SELECT
+                    payment,
+                    IFNULL(SUM(cost), 0) AS sum,
+                    months.month
+                FROM
+                    (
+                        SELECT 1 AS month UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8
+                        UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+                    ) AS months
+                LEFT JOIN appointments ON months.month = MONTH(date) AND payment = ? AND YEAR(date) = ?
+                GROUP BY months.month
+                `;
+            return pool.query(query, [payment, year]).then(res => res[0]).catch(error => logger.error(error))
         },
+
+        getTotalYearlySumsForDoctors(year) {
+            const query = "SELECT doctor, sum(cost) AS total FROM `appointments` WHERE year(date)=? GROUP BY doctor ORDER BY sum(cost) desc";
+            return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error))
+        },
+        getMonthlySumsForDoctor(doctor, year) {
+            const query = `SELECT
+                    doctor,
+                    IFNULL(SUM(cost), 0) AS sum,
+                    months.month
+                FROM
+                    (
+                        SELECT 1 AS month UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8
+                        UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+                    ) AS months
+                LEFT JOIN appointments ON months.month = MONTH(date) AND doctor = ? AND YEAR(date) = ?
+                GROUP BY months.month
+                `;
+            return pool.query(query, [doctor, year]).then(res => res[0]).catch(error => logger.error(error))
+        },
+
+        getTotalMonthlySums(year) {
+            const query = `SELECT
+                    months.month AS month,
+                    IFNULL(SUM(appointments.cost), 0) AS total
+                FROM
+                    (
+                        SELECT 1 AS month UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8
+                        UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+                    ) AS months
+                LEFT JOIN
+                    appointments
+                ON
+                    months.month = MONTH(appointments.date) AND YEAR(appointments.date) = ?
+                GROUP BY
+                    months.month`;
+            return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error));
+        },
+        getTotalSumForYear(year) {
+            const query = "select sum(cost) as total from appointments where year(date)=?";
+            return pool.query(query, year).then(res => res[0][0]).catch(error => logger.error(error));
+        },
+
+
         countPatients(month, year) {
             // Need to count unique patientFile, so that if the same patient came 2 during the month, we will count it as 1
             const query = "select count(patientFile) from appointments where month(date)=? and year(date)=?";
@@ -345,24 +394,4 @@ const database = {
 module.exports = { database };
 
 
-// database.analytics.countTreatment("Filling", 7, 2023);
-// database.analytics.sum("Nhima", 8, 2023);
-
-// ("CONS"), ("PF"), ("TF"), ("XLA"), ("S"), ("DIS"), ("OP"), ("SP"), ("PI"), ("FA"), ("RCT"), ("TW"), ("CP"), ("IMP"), ("NG"), ("PD"), ("AT"), ("FD"), ("PFM"), ("ZC"), ("IM"), ("JA")
-
-// ("Nhima"), ("Cash"), ("Swipe"), ("TT"), ("SES"), ("Liberty"), ("Medlink")
-
-// database.users.getAll();
-// database.users.authorizeUser("1").catch((error) => console.log(error));
-// database.appointments.describeAppointmentsTable()
-// database.appointments.alterTableAppointments().catch(error => console.log(error));
-// database.appointments.deleteAll()
-// database.appointments.getAll().then(response => console.log(response));
-// database.appointments.importAppointmentsFromCSVFile().catch(error => console.log(error))
-// database.patients.alterTablePatients()
-// database.patients.deleteAll()
-
-// database.patients.getAllPatients()
-
-// database.patients.describePatientsTable()
-
+// pool.query("delete from appointments where payment='SES' and month(date)='6'");

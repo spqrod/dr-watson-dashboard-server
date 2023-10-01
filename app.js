@@ -249,76 +249,82 @@ app.get("/reports", authorizeToken, (req, res) => {
 
 app.get("/analytics/sums-for-payments", authorizeToken, checkAccessLevel, (req, res) => {
 
-    function getSumsForPaymentFor12Months(payment) {
-        const arrayOfPromises = [];
-        for (let i = 1; i <= 12; i++) {
-            arrayOfPromises.push(database.analytics.getSumsForPayments(payment, i, 2023))
-        }
-        return Promise.all(arrayOfPromises);
-    }
+    const year = req.query.year;
 
     function formatNumberToAddThousandSeparators(number) {
         return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     }
     
-    function createArrayOfObjectsWithPaymentsName(array) {
-        const arrayOfObjectsWithPaymentsName = []
-        array.forEach(item => {
-            const sums = [];
-            item.forEach( sum => sums.push(formatNumberToAddThousandSeparators(sum.value)))
-            arrayOfObjectsWithPaymentsName.push({ payment: item[0].payment, year: item[0].year, sums: sums });
-        })
-        return arrayOfObjectsWithPaymentsName;
-    }
-    
-    database.payments.getAll()
-        .then(payments => {
-            const arrayOfPromises = [];
-            payments.forEach(payment => arrayOfPromises.push(getSumsForPaymentFor12Months(payment.payment)))
-            return Promise.all(arrayOfPromises);
+    let totalYearlySumsForPayments = [];
+    let monthlySumsForPayment = [];
+    let totalMonthlySums = [];
+    let totalSumForYear = 0;
+
+    Promise.all([
+        database.analytics.getTotalMonthlySums(year), 
+        database.analytics.getTotalYearlySumsForPayments(year),
+        database.analytics.getTotalSumForYear(year)
+    ])
+        .then(response => {
+            totalMonthlySums = response[0];
+            totalMonthlySums.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
+            totalYearlySumsForPayments = response[1];
+            totalYearlySumsForPayments.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
+            totalSumForYear = response[2].total;
+            totalSumForYear = formatNumberToAddThousandSeparators(totalSumForYear);
+            return Promise.all(totalYearlySumsForPayments.map(item => database.analytics.getMonthlySumsForPayment(item.payment, year)));
         })
         .then(response => {
-            const arrayOfObjects = createArrayOfObjectsWithPaymentsName(response);
-            res.json(arrayOfObjects);
-        })
-        .catch(error => logger.error(error))
+            monthlySumsForPayment = response;
+            monthlySumsForPayment.forEach(item => 
+                item.forEach(subItem => subItem.sum = formatNumberToAddThousandSeparators(subItem.sum)));
+            res.json({ 
+                totalYearlySumsForPayments: totalYearlySumsForPayments, 
+                monthlySumsForPayment: monthlySumsForPayment,
+                totalMonthlySums: totalMonthlySums,
+                totalSumForYear: totalSumForYear
+            });
+        });
 });
 
 app.get("/analytics/sums-for-doctors", authorizeToken, checkAccessLevel, (req, res) => {
 
-    function getSumsForDoctorFor12Months(doctor) {
-        const arrayOfPromises = [];
-        for (let i = 1; i <= 12; i++) {
-            arrayOfPromises.push(database.analytics.getSumsForDoctors(doctor, i, 2023))
-        }
-        return Promise.all(arrayOfPromises);
-    }
+    const year = req.query.year;
 
     function formatNumberToAddThousandSeparators(number) {
         return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     }
     
-    function createArrayOfObjectsWithDoctorsName(array) {
-        const arrayOfObjectsWithDoctorsName = []
-        array.forEach(item => {
-            const sums = [];
-            item.forEach( sum => sums.push(formatNumberToAddThousandSeparators(sum.value)))
-            arrayOfObjectsWithDoctorsName.push({ doctor: item[0].doctor, year: item[0].year, sums: sums });
-        })
-        return arrayOfObjectsWithDoctorsName;
-    }
-    
-    database.doctors.getAll()
-        .then(doctors => {
-            const arrayOfPromises = [];
-            doctors.forEach(doctor => arrayOfPromises.push(getSumsForDoctorFor12Months(doctor.doctor)))
-            return Promise.all(arrayOfPromises);
+    let totalYearlySumsForDoctors = [];
+    let monthlySumsForDoctor = [];
+    let totalMonthlySums = [];
+    let totalSumForYear = 0;
+
+    Promise.all([
+        database.analytics.getTotalMonthlySums(year), 
+        database.analytics.getTotalYearlySumsForDoctors(year),
+        database.analytics.getTotalSumForYear(year)
+    ])
+        .then(response => {
+            totalMonthlySums = response[0];
+            totalMonthlySums.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
+            totalYearlySumsForDoctors = response[1];
+            totalYearlySumsForDoctors.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
+            totalSumForYear = response[2].total;
+            totalSumForYear = formatNumberToAddThousandSeparators(totalSumForYear);
+            return Promise.all(totalYearlySumsForDoctors.map(item => database.analytics.getMonthlySumsForDoctor(item.doctor, year)));
         })
         .then(response => {
-            const arrayOfObjects = createArrayOfObjectsWithDoctorsName(response);
-            res.json(arrayOfObjects);
-        })
-        .catch(error => logger.error(error))
+            monthlySumsForDoctor = response;
+            monthlySumsForDoctor.forEach(item => 
+                item.forEach(subItem => subItem.sum = formatNumberToAddThousandSeparators(subItem.sum)));
+            res.json({ 
+                totalYearlySumsForDoctors: totalYearlySumsForDoctors, 
+                monthlySumsForDoctor: monthlySumsForDoctor,
+                totalMonthlySums: totalMonthlySums,
+                totalSumForYear: totalSumForYear
+            });
+        });
 });
 
 app.get("/settings", authorizeToken, checkAccessLevel, (req, res) => {
