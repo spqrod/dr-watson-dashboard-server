@@ -90,7 +90,7 @@ const database = {
             return pool.query(query, date).then(res => res[0]);
         },
         search(searchString) {
-            const query = `select * from appointments where concat(firstName, lastName, patientFile, doctor, treatment, phone) like "%${searchString}%" order by date, time`;
+            const query = `select * from appointments where concat(firstName, lastName, patientFile, doctor, treatment, phone, cost, date) like "%${searchString}%" order by date, time`;
             return pool.query(query, [searchString])
                 .then(res => res[0])
         },
