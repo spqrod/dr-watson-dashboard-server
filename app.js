@@ -223,7 +223,6 @@ app.put("/patients", authorizeToken, (req, res) => {
     const patient = req.body;
     database.patients.update(patient)
         .then((response) => {
-            console.log(response)
             res.json({success: true});
         })
         .catch(error => {
@@ -247,80 +246,43 @@ app.get("/reports", authorizeToken, (req, res) => {
 
 });
 
-app.get("/analytics/sums-for-payments", authorizeToken, checkAccessLevel, (req, res) => {
+app.get("/analytics/sums", authorizeToken, checkAccessLevel, (req, res) => {
 
+    const category = req.query.category;
     const year = req.query.year;
 
     function formatNumberToAddThousandSeparators(number) {
-        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        let formattedNumber = Math.round(Number(number));
+        formattedNumber = formattedNumber.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        return formattedNumber;
     }
     
-    let totalYearlySumsForPayments = [];
-    let monthlySumsForPayment = [];
+    let totalYearlySumsForCategory = [];
+    let monthlySumsForCategory = [];
     let totalMonthlySums = [];
     let totalSumForYear = 0;
 
     Promise.all([
         database.analytics.getTotalMonthlySums(year), 
-        database.analytics.getTotalYearlySumsForPayments(year),
+        database.analytics.getTotalYearlySumsForCategory(year, category),
         database.analytics.getTotalSumForYear(year)
     ])
         .then(response => {
             totalMonthlySums = response[0];
             totalMonthlySums.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
-            totalYearlySumsForPayments = response[1];
-            totalYearlySumsForPayments.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
+            totalYearlySumsForCategory = response[1];
+            totalYearlySumsForCategory.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
             totalSumForYear = response[2].total;
             totalSumForYear = formatNumberToAddThousandSeparators(totalSumForYear);
-            return Promise.all(totalYearlySumsForPayments.map(item => database.analytics.getMonthlySumsForPayment(item.payment, year)));
+            return Promise.all(totalYearlySumsForCategory.map(item => database.analytics.getMonthlySumsForCategory(item[category], year, category)));
         })
         .then(response => {
-            monthlySumsForPayment = response;
-            monthlySumsForPayment.forEach(item => 
+            monthlySumsForCategory = response;
+            monthlySumsForCategory.forEach(item => 
                 item.forEach(subItem => subItem.sum = formatNumberToAddThousandSeparators(subItem.sum)));
             res.json({ 
-                totalYearlySumsForPayments: totalYearlySumsForPayments, 
-                monthlySumsForPayment: monthlySumsForPayment,
-                totalMonthlySums: totalMonthlySums,
-                totalSumForYear: totalSumForYear
-            });
-        });
-});
-
-app.get("/analytics/sums-for-doctors", authorizeToken, checkAccessLevel, (req, res) => {
-
-    const year = req.query.year;
-
-    function formatNumberToAddThousandSeparators(number) {
-        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    }
-    
-    let totalYearlySumsForDoctors = [];
-    let monthlySumsForDoctor = [];
-    let totalMonthlySums = [];
-    let totalSumForYear = 0;
-
-    Promise.all([
-        database.analytics.getTotalMonthlySums(year), 
-        database.analytics.getTotalYearlySumsForDoctors(year),
-        database.analytics.getTotalSumForYear(year)
-    ])
-        .then(response => {
-            totalMonthlySums = response[0];
-            totalMonthlySums.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
-            totalYearlySumsForDoctors = response[1];
-            totalYearlySumsForDoctors.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total))
-            totalSumForYear = response[2].total;
-            totalSumForYear = formatNumberToAddThousandSeparators(totalSumForYear);
-            return Promise.all(totalYearlySumsForDoctors.map(item => database.analytics.getMonthlySumsForDoctor(item.doctor, year)));
-        })
-        .then(response => {
-            monthlySumsForDoctor = response;
-            monthlySumsForDoctor.forEach(item => 
-                item.forEach(subItem => subItem.sum = formatNumberToAddThousandSeparators(subItem.sum)));
-            res.json({ 
-                totalYearlySumsForDoctors: totalYearlySumsForDoctors, 
-                monthlySumsForDoctor: monthlySumsForDoctor,
+                totalYearlySumsForCategory: totalYearlySumsForCategory, 
+                monthlySumsForCategory: monthlySumsForCategory,
                 totalMonthlySums: totalMonthlySums,
                 totalSumForYear: totalSumForYear
             });

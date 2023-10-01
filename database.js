@@ -288,13 +288,13 @@ const database = {
                 });
         },
 
-        getTotalYearlySumsForPayments(year) {
-            const query = "SELECT payment, sum(cost) AS total FROM `appointments` WHERE year(date)=? GROUP BY payment ORDER BY sum(cost) desc";
+        getTotalYearlySumsForCategory(year, category) {
+            const query = `SELECT ${category}, sum(cost) AS total FROM appointments WHERE year(date)=? GROUP BY ${category} ORDER BY sum(cost) desc`;
             return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error))
         },
-        getMonthlySumsForPayment(payment, year) {
+        getMonthlySumsForCategory(categoryItem, year, category) {
             const query = `SELECT
-                    payment,
+                    ${category},
                     IFNULL(SUM(cost), 0) AS sum,
                     months.month
                 FROM
@@ -303,31 +303,10 @@ const database = {
                         UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8
                         UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
                     ) AS months
-                LEFT JOIN appointments ON months.month = MONTH(date) AND payment = ? AND YEAR(date) = ?
+                LEFT JOIN appointments ON months.month = MONTH(date) AND ${category} = ? AND YEAR(date) = ?
                 GROUP BY months.month
                 `;
-            return pool.query(query, [payment, year]).then(res => res[0]).catch(error => logger.error(error))
-        },
-
-        getTotalYearlySumsForDoctors(year) {
-            const query = "SELECT doctor, sum(cost) AS total FROM `appointments` WHERE year(date)=? GROUP BY doctor ORDER BY sum(cost) desc";
-            return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error))
-        },
-        getMonthlySumsForDoctor(doctor, year) {
-            const query = `SELECT
-                    doctor,
-                    IFNULL(SUM(cost), 0) AS sum,
-                    months.month
-                FROM
-                    (
-                        SELECT 1 AS month UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
-                        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8
-                        UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
-                    ) AS months
-                LEFT JOIN appointments ON months.month = MONTH(date) AND doctor = ? AND YEAR(date) = ?
-                GROUP BY months.month
-                `;
-            return pool.query(query, [doctor, year]).then(res => res[0]).catch(error => logger.error(error))
+            return pool.query(query, [categoryItem, year]).then(res => res[0]).catch(error => logger.error(error))
         },
 
         getTotalMonthlySums(year) {
@@ -352,7 +331,6 @@ const database = {
             const query = "select sum(cost) as total from appointments where year(date)=?";
             return pool.query(query, year).then(res => res[0][0]).catch(error => logger.error(error));
         },
-
 
         countPatients(month, year) {
             // Need to count unique patientFile, so that if the same patient came 2 during the month, we will count it as 1
