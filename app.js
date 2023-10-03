@@ -107,9 +107,9 @@ app.get("/appointments", authorizeToken, (req, res) => {
                 });
                 res.json(appointments);
             });
-    }
-    else {
-        const searchString = sanitizeString(req.query.searchString);
+    } else if (req.query.searchString) {
+        let searchString = sanitizeString(req.query.searchString);
+        searchString = searchString.split(" ");
         database.appointments.search(searchString)
             .then(appointments => {
                 appointments.forEach(appointment => {
@@ -119,9 +119,6 @@ app.get("/appointments", authorizeToken, (req, res) => {
             })
             .catch(error => logger.info(error));
     }
-
-
-  
 });
 
 app.post("/appointments", authorizeToken, (req, res) => {
