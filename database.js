@@ -99,8 +99,8 @@ const database = {
             return pool.query(query, [patientFile]).then(res => res[0]).catch(error => logger.error(error));
         },
         addNew: function(appointment) {
-            return pool.query("insert into appointments (date, time, firstName, lastName, doctor, treatment, payment, cost, patientFile, phone, comments) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", 
-                [appointment.date, appointment.time, appointment.firstName, appointment.lastName, appointment.doctor, appointment.treatment, appointment.payment, appointment.cost, appointment.patientFile, appointment.phone, appointment.comments]);
+            return pool.query("insert into appointments (date, time, firstName, lastName, doctor, treatment, payment, cost, patientFile, phone, comments, noShow) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", 
+                [appointment.date, appointment.time, appointment.firstName, appointment.lastName, appointment.doctor, appointment.treatment, appointment.payment, appointment.cost, appointment.patientFile, appointment.phone, appointment.comments, appointment.noShow]);
         },
         update: function(appointment) {
             return pool.query("UPDATE appointments SET date=?, time=?, firstName=?, lastName=?, doctor=?, treatment=?, payment=?, cost=?, patientFile=?, phone=?, comments=?, noshow=? WHERE id = ?", 
@@ -277,17 +277,6 @@ const database = {
         },
     },
     analytics: {
-        countTreatment(treatment, month, year) {
-            const query = "select count(treatment) from appointments where treatment=? and month(date)=? and year(date)=?";
-            const params = [treatment, month, year];
-            pool.query(query, params)
-                .then(res => {
-                    const key = Object.keys(res[0][0])[0];
-                    const value = res[0][0][key];
-                    console.log(`Number of treatments "${treatment}" for month ${month} of year ${year} is ${value}`);
-                });
-        },
-
         getTotalYearlySumsForCategory(year, category) {
             const query = `SELECT ${category}, sum(cost) AS total FROM appointments WHERE year(date)=? GROUP BY ${category} ORDER BY sum(cost) desc`;
             return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error))
@@ -331,7 +320,22 @@ const database = {
             const query = "select sum(cost) as total from appointments where year(date)=?";
             return pool.query(query, year).then(res => res[0][0]).catch(error => logger.error(error));
         },
-
+    },
+    reports: {
+        countTreatment(treatment, month, year) {
+            const query = "select count(treatment) from appointments where treatment=? and month(date)=? and year(date)=?";
+            const params = [treatment, month, year];
+            pool.query(query, params)
+                .then(res => {
+                    const key = Object.keys(res[0][0])[0];
+                    const value = res[0][0][key];
+                    console.log(`Number of treatments "${treatment}" for month ${month} of year ${year} is ${value}`);
+                });
+        },
+        countAppointments(year) {
+            const query = "select count(firstName) as appointmentCount, month(date) as month from appointments where year(date)=? and noShow=false and firstName='rodion2' group by month(date)";
+            return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error));
+        },
         countPatients(month, year) {
             // Need to count unique patientFile, so that if the same patient came 2 during the month, we will count it as 1
             const query = "select count(patientFile) from appointments where month(date)=? and year(date)=?";
@@ -369,7 +373,12 @@ const database = {
     }
 }
 
+// pool.query("update appointments set noShow=false where noShow is null").catch(err => console.log(err));
+// pool.query("select noShow from appointments where noShow is null").then(res => console.log(res[0])).catch(err => console.log(err));
+
 module.exports = { database };
+
+database.reports.countAppointments(2023).then(res => console.log(res));
 
 
 // pool.query("delete from appointments where payment='SES' and month(date)='6'");

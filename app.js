@@ -130,7 +130,7 @@ app.post("/appointments", authorizeToken, (req, res) => {
     database.appointments.addNew(appointment)
         .then((result) => res.json({ success: true }))
         .catch(error => {
-            logger.info(error);
+            logger.error(error);
             res.json({success: false});
         });
 });
@@ -239,7 +239,8 @@ app.delete("/patients/:id", authorizeToken, (req, res) => {
         });
 });
 
-app.get("/reports", authorizeToken, (req, res) => {
+app.get("/reports/:year", authorizeToken, (req, res) => {
+    let year = req.params.year;
 
 });
 
