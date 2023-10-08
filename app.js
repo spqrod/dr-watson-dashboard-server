@@ -241,7 +241,12 @@ app.delete("/patients/:id", authorizeToken, (req, res) => {
 
 app.get("/reports/:year", authorizeToken, (req, res) => {
     let year = req.params.year;
-
+    Promise.all([
+        database.reports.countAppointmentsByMonth(year), 
+        database.reports.countAppointmentsByQuarter(year),
+        database.reports.countAppointmentsTotal(year),
+    ])
+    .then(response => res.json(response));
 });
 
 app.get("/analytics/sums", authorizeToken, checkAccessLevel, (req, res) => {
