@@ -239,12 +239,22 @@ app.delete("/patients/:id", authorizeToken, (req, res) => {
         });
 });
 
-app.get("/reports/:year", authorizeToken, (req, res) => {
+app.get("/reports/all-appointments/:year", authorizeToken, (req, res) => {
     let year = req.params.year;
     Promise.all([
         database.reports.countAppointmentsByMonth(year), 
         database.reports.countAppointmentsByQuarter(year),
         database.reports.countAppointmentsTotal(year),
+    ])
+    .then(response => res.json(response));
+});
+
+app.get("/reports/nhima-appointments/:year", authorizeToken, (req, res) => {
+    let year = req.params.year;
+    Promise.all([
+        database.reports.countNhimaAppointmentsByMonth(year), 
+        database.reports.countNhimaAppointmentsByQuarter(year),
+        database.reports.countNhimaAppointmentsTotal(year),
     ])
     .then(response => res.json(response));
 });

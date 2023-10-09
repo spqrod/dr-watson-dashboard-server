@@ -395,6 +395,87 @@ const database = {
                 AND lastName != 'x'`;
             return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error));
         },
+
+        countNhimaAppointmentsByMonth(year) {
+            const query = `
+                        SELECT
+                IFNULL(appointmentCounts.appointmentCount, 0) as appointmentCount,
+                months.month as month
+            FROM
+                (
+                    SELECT 1 as month UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                    UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8
+                    UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+                ) as months
+            LEFT JOIN
+                (
+                    SELECT
+                        COUNT(patientFile) as appointmentCount,
+                        MONTH(date) as month
+                    FROM
+                        appointments
+                    WHERE
+                        YEAR(date) = ?
+                        AND noShow = false
+                        AND firstName != 'x'
+                        AND lastName != 'x'
+                        AND payment = 'Nhima'
+                    GROUP BY
+                        MONTH(date)
+                ) as appointmentCounts
+            ON
+                months.month = appointmentCounts.month;
+            `;
+            return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error));
+        },
+        countNhimaAppointmentsByQuarter(year) {
+            const query = `SELECT
+            IFNULL(appointmentCounts.appointmentCount, 0) as appointmentCount,
+            quarters.quarter as quarter
+        FROM
+            (
+                SELECT 1 as quarter UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+            ) as quarters
+        LEFT JOIN
+            (
+                SELECT
+                    COUNT(patientFile) as appointmentCount,
+                    QUARTER(date) as quarter
+                FROM
+                    appointments
+                WHERE
+                    YEAR(date) = ?
+                    AND noShow = false
+                    AND firstName != 'x'
+                    AND lastName != 'x'
+                    AND payment = 'Nhima'
+                GROUP BY
+                    QUARTER(date)
+            ) as appointmentCounts
+        ON
+            quarters.quarter = appointmentCounts.quarter;
+        
+            `;
+            return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error));
+        },
+        countNhimaAppointmentsTotal(year) {
+            const query = `
+            SELECT 
+                COUNT(patientFile) as total
+            FROM
+                appointments
+            WHERE 
+                YEAR(date) = ? 
+                AND noShow = false
+                AND firstName != 'x'
+                AND lastName != 'x'
+                AND payment = 'Nhima'
+                `;
+            return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error));
+        },
+
+
+
         countTreatment(treatment, month, year) {
             const query = "select count(treatment) from appointments where treatment=? and month(date)=? and year(date)=?";
             const params = [treatment, month, year];
