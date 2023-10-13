@@ -278,7 +278,7 @@ app.get("/analytics/sums", authorizeToken, checkAccessLevel, (req, res) => {
     Promise.all([
         database.analytics.getTotalMonthlySums(year), 
         database.analytics.getTotalYearlySumsForCategory(year, category),
-        database.analytics.getTotalSumForYear(year)
+        database.analytics.getTotalSumForYear(year),
     ])
         .then(response => {
             totalMonthlySums = response[0];
@@ -297,8 +297,26 @@ app.get("/analytics/sums", authorizeToken, checkAccessLevel, (req, res) => {
                 totalYearlySumsForCategory: totalYearlySumsForCategory, 
                 monthlySumsForCategory: monthlySumsForCategory,
                 totalMonthlySums: totalMonthlySums,
-                totalSumForYear: totalSumForYear
+                totalSumForYear: totalSumForYear,
             });
+        });
+});
+
+app.get("/analytics/sums/daily", authorizeToken, checkAccessLevel, (req, res) => {
+
+    const year = req.query.year;
+    const month = req.query.month;
+
+    function formatNumberToAddThousandSeparators(number) {
+        let formattedNumber = Math.round(Number(number));
+        formattedNumber = formattedNumber.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        return formattedNumber;
+    }
+    
+    database.analytics.getTotalDailySums(year, month)
+        .then(response => {
+            response.forEach(item => item.total = formatNumberToAddThousandSeparators(item.total));
+            res.json(response);
         });
 });
 
