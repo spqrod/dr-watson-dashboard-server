@@ -499,17 +499,94 @@ const database = {
             return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error));
         },
 
+        countTreatments(year, month) {
 
+            const minPatientAgeInDaysForAgeGroup0To1 = 0;
+            const maxPatientAgeInDaysForAgeGroup0To1 = 365;
 
-        countTreatment(treatment, month, year) {
-            const query = "select count(treatment) from appointments where treatment=? and month(date)=? and year(date)=?";
-            const params = [treatment, month, year];
-            pool.query(query, params)
-                .then(res => {
-                    const key = Object.keys(res[0][0])[0];
-                    const value = res[0][0][key];
-                    console.log(`Number of treatments "${treatment}" for month ${month} of year ${year} is ${value}`);
-                });
+            const minPatientAgeInDaysForAgeGroup1To4 = 365;
+            const maxPatientAgeInDaysForAgeGroup1To4 = 365 * 4;
+
+            const minPatientAgeInDaysForAgeGroup5To14 = 365 * 5;
+            const maxPatientAgeInDaysForAgeGroup5To14 = 365 * 14;
+
+            const minPatientAgeInDaysForAgeGroup15To120 = 365 * 15;
+            const maxPatientAgeInDaysForAgeGroup15To120 = 365 * 120;
+
+            const query = `
+                SELECT
+                    ageGroups.ageGroup,
+                    treatments.treatment,
+                    IFNULL(COUNT(appointments.treatment), 0) AS count
+                FROM (
+                    SELECT '0-1' AS ageGroup
+                    UNION SELECT '1-4'
+                    UNION SELECT '5-14'
+                    UNION SELECT '15-120'
+                ) ageGroups
+                CROSS JOIN (
+                    SELECT DISTINCT treatment AS treatment
+                    FROM appointments
+                    WHERE YEAR(appointments.date) = ? AND MONTH(appointments.date) = ?
+                ) treatments
+                LEFT JOIN (
+                    SELECT 
+                        '0-1' AS ageGroup,
+                        patients.file AS file
+                    FROM patients
+                    WHERE DATEDIFF(CURRENT_DATE(), patients.dateOfBirth) BETWEEN ? AND ?
+                    UNION ALL
+                    SELECT
+                        '1-4' AS ageGroup,
+                        patients.file AS file
+                    FROM patients
+                    WHERE DATEDIFF(CURRENT_DATE(), patients.dateOfBirth) BETWEEN ? AND ?
+                    UNION ALL
+                    SELECT
+                        '5-14' AS ageGroup,
+                        patients.file AS file
+                    FROM patients
+                    WHERE DATEDIFF(CURRENT_DATE(), patients.dateOfBirth) BETWEEN ? AND ?
+                    UNION ALL
+                    SELECT
+                        '15-120' AS ageGroup,
+                        patients.file AS file
+                    FROM patients
+                    WHERE DATEDIFF(CURRENT_DATE(), patients.dateOfBirth) BETWEEN ? AND ?
+                ) AS filteredPatients
+                ON ageGroups.ageGroup = filteredPatients.ageGroup
+                LEFT JOIN (
+                    SELECT
+                        patientFile,
+                        treatment
+                    FROM appointments
+                    WHERE YEAR(appointments.date) = ? AND MONTH(appointments.date) = ?
+                ) AS appointments
+                ON filteredPatients.file = appointments.patientFile
+                AND treatments.treatment = appointments.treatment
+                GROUP BY ageGroups.ageGroup, treatments.treatment
+                ORDER BY treatments.treatment
+            `;
+            const params = [ 
+                year,
+                month,
+                minPatientAgeInDaysForAgeGroup0To1, 
+                maxPatientAgeInDaysForAgeGroup0To1, 
+                minPatientAgeInDaysForAgeGroup1To4, 
+                maxPatientAgeInDaysForAgeGroup1To4, 
+                minPatientAgeInDaysForAgeGroup5To14,
+                maxPatientAgeInDaysForAgeGroup5To14,
+                minPatientAgeInDaysForAgeGroup15To120,
+                maxPatientAgeInDaysForAgeGroup15To120,
+                year, 
+                month, 
+                minPatientAgeInDaysForAgeGroup0To1, 
+                maxPatientAgeInDaysForAgeGroup15To120
+            ];
+
+            return pool.query(query, params)
+                .then(res => res[0])
+                .catch(error => logger.error(error));
         },
         countPatients(month, year) {
             // Need to count unique patientFile, so that if the same patient came 2 during the month, we will count it as 1
@@ -551,5 +628,11 @@ const database = {
 
 module.exports = { database };
 
-// database.analytics.getTotalDailySums(2023, 1).then(res => console.log(res))
-
+// database.reports.countTreatments(2023, 7)
+//     .then(res => {
+//         console.log(res.filter(item => item.ageGroup == "0-1"));
+//         console.log(res.filter(item => item.ageGroup == "1-4"));
+//         console.log(res.filter(item => item.ageGroup == "5-14"));
+//         console.log(res.filter(item => item.ageGroup == "15-120"));
+//     })
+//     .catch(err => console.log(err))

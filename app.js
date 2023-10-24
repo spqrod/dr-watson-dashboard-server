@@ -259,6 +259,21 @@ app.get("/reports/nhima-appointments/:year", authorizeToken, (req, res) => {
     .then(response => res.json(response));
 });
 
+app.get("/reports/count-treatments", authorizeToken, (req, res) => {
+
+    let year = Number(req.query.year);
+    let month = Number(req.query.month);
+    
+    database.reports.countTreatments(year, month)
+        .then(response => {
+            const ageGroup0To1 = response.filter(item => item.ageGroup == "0-1");
+            const ageGroup1To4 = response.filter(item => item.ageGroup == "1-4");
+            const ageGroup5To14 = response.filter(item => item.ageGroup == "5-14");
+            const ageGroup15To120 = response.filter(item => item.ageGroup == "15-120");
+            res.json([ageGroup0To1, ageGroup1To4, ageGroup5To14, ageGroup15To120]);
+        });
+});
+
 app.get("/analytics/sums", authorizeToken, checkAccessLevel, (req, res) => {
 
     const category = req.query.category;
