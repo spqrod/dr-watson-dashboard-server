@@ -122,9 +122,6 @@ const database = {
             const query = "alter table appointments modify column cost double(10,2)";
             return pool.query(query);
         },
-        deleteAll: function() {
-            return pool.query("delete from appointments");
-        },
         getAll: function() {
             return pool.query("select * from appointments").then(response => response[0]);
         },
@@ -560,7 +557,12 @@ const database = {
                         patientFile,
                         treatment
                     FROM appointments
-                    WHERE YEAR(appointments.date) = ? AND MONTH(appointments.date) = ?
+                    WHERE 
+                        YEAR(appointments.date) = ? AND 
+                        MONTH(appointments.date) = ? AND
+                        NOT appointments.firstName = 'x' AND 
+                        NOT appointments.treatment = '' AND
+                        NOT appointments.patientFile = ''
                 ) AS appointments
                 ON filteredPatients.file = appointments.patientFile
                 AND treatments.treatment = appointments.treatment
@@ -582,6 +584,36 @@ const database = {
                 month, 
                 minPatientAgeInDaysForAgeGroup0To1, 
                 maxPatientAgeInDaysForAgeGroup15To120
+            ];
+
+            return pool.query(query, params)
+                .then(res => res[0])
+                .catch(error => logger.error(error));
+        },
+        countTreatments2(year, month, minPatientAgeInDays, maxPatientAgeInDays) {
+
+            const query = `
+                SELECT 
+                    appointments.treatment, COUNT(appointments.treatment) as count
+                FROM
+                    appointments
+                JOIN
+                    patients on appointments.patientFile = patients.file
+                WHERE
+                    YEAR(appointments.date) = ? AND 
+                    MONTH(appointments.date) = ? AND 
+                    NOT appointments.firstName = 'x' AND 
+                    NOT appointments.treatment = '' AND
+                    NOT appointments.patientFile = '' AND
+                    (DATEDIFF(NOW(), patients.dateOfBirth) > 0)
+                GROUP BY
+                    appointments.treatment
+            `;
+            const params = [ 
+                year,
+                month,
+                minPatientAgeInDays,
+                maxPatientAgeInDays
             ];
 
             return pool.query(query, params)
@@ -622,17 +654,64 @@ const database = {
                 .then(res => res[0])
                 .catch(error => logger.info(error));
         },
+    },
+    dropAllTables() {
+        pool.query(`drop table if exists appointments, treatments, users, patients, timeSlots, doctors, payments`)
+            .then(() => console.log("All tables dropped successfully"))
+            .catch(error => console.log(error));
+    },
+    import() {
+        const filePath = "../database backup/rodion_drwatsondental (4).sql";
+
+        // Make SQL import faster
+        // const fs = require("fs");
+        // fs.readFile(filePath, "utf8", (error, data) => {
+        //     if (error) 
+        //         console.log("Error reading file " + error)
+        //     else {
+        //         const lineToPrepend = `
+        //             SET autocommit=0;
+        //             SET unique_checks=0;
+        //             SET foreign_key_checks=0;
+        //         `;
+        //         const lineToAppend = `
+        //             COMMIT;
+        //             SET unique_checks=1;
+        //             SET foreign_key_checks=1;
+        //         `;
+        //         const newContent = lineToPrepend + "\n" + data + "\n" + lineToAppend;
+        //         fs.writeFile(filePath, newContent, error => {
+        //             if (error) 
+        //                 console.log("Error writing file " + error);
+        //             else 
+        //                 console.log("File written successfully");
+        //         })
+        //     }
+        // });
+
+        const Importer = require('mysql-import');
+
+        const importer = new Importer({
+            host: process.env.DATABASE_HOST,
+            user: process.env.DATABASE_USER,
+            password: process.env.DATABASE_PASSWORD,
+            database: process.env.DATABASE_DATABASE_NAME, 
+        });
+
+        importer.onProgress(progress=>{
+            var percent = Math.floor(progress.bytes_processed / progress.total_bytes * 10000) / 100;
+            console.log(`${percent}% Completed`);
+        });
+
+        importer.import(filePath)
+            .then(() => {
+                var files_imported = importer.getImported();
+                console.log(`${files_imported.length} SQL file(s) imported.`);})
+            .catch(err => {
+                console.error(err);
+            });
     }
 }
 
 
 module.exports = { database };
-
-// database.reports.countTreatments(2023, 7)
-//     .then(res => {
-//         console.log(res.filter(item => item.ageGroup == "0-1"));
-//         console.log(res.filter(item => item.ageGroup == "1-4"));
-//         console.log(res.filter(item => item.ageGroup == "5-14"));
-//         console.log(res.filter(item => item.ageGroup == "15-120"));
-//     })
-//     .catch(err => console.log(err))
