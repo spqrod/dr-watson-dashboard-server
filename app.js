@@ -274,6 +274,24 @@ app.get("/reports/count-treatments", authorizeToken, (req, res) => {
         });
 });
 
+app.get("/reports/count-patients", authorizeToken, (req, res) => {
+    const year = Number(req.query.year);
+    const minPatientAge1 = 0;
+    const maxPatientAge1 = 5;
+    const minPatientAge2 = 5;
+    const maxPatientAge2 = 200;
+
+    Promise.all([
+        database.reports.countPatients(year, minPatientAge1, maxPatientAge1),
+        database.reports.countPatients(year, minPatientAge2, maxPatientAge2),
+        database.reports.countPatients(year, minPatientAge1, maxPatientAge2)
+    ])
+        .then(response => {
+            res.json([response[0][0].amountOfAppointments, response[1][0].amountOfAppointments, response[2][0].amountOfAppointments]);
+        })
+        .catch(error => logger.error(error));
+});
+
 app.get("/analytics/sums", authorizeToken, checkAccessLevel, (req, res) => {
 
     const category = req.query.category;

@@ -495,7 +495,7 @@ const database = {
                 `;
             return pool.query(query, year).then(res => res[0]).catch(error => logger.error(error));
         },
-
+        
         countTreatments(year, month) {
 
             const minPatientAgeInDaysForAgeGroup0To1 = 0;
@@ -590,47 +590,23 @@ const database = {
                 .then(res => res[0])
                 .catch(error => logger.error(error));
         },
-        countTreatments2(year, month, minPatientAgeInDays, maxPatientAgeInDays) {
 
+        countPatients(year, minPatientAge, maxPatientAge) {
             const query = `
-                SELECT 
-                    appointments.treatment, COUNT(appointments.treatment) as count
-                FROM
-                    appointments
-                JOIN
-                    patients on appointments.patientFile = patients.file
-                WHERE
+                SELECT COUNT(DISTINCT appointments.patientFile) as amountOfAppointments
+                FROM appointments
+                JOIN patients ON patients.file = appointments.patientFile
+                WHERE 
                     YEAR(appointments.date) = ? AND 
-                    MONTH(appointments.date) = ? AND 
-                    NOT appointments.firstName = 'x' AND 
-                    NOT appointments.treatment = '' AND
-                    NOT appointments.patientFile = '' AND
-                    (DATEDIFF(NOW(), patients.dateOfBirth) > 0)
-                GROUP BY
-                    appointments.treatment
+                    TIMESTAMPDIFF(YEAR, patients.dateOfBirth, CURDATE()) >= ? AND 
+                    TIMESTAMPDIFF(YEAR, patients.dateOfBirth, CURDATE()) < ?
             `;
-            const params = [ 
-                year,
-                month,
-                minPatientAgeInDays,
-                maxPatientAgeInDays
-            ];
-
+            const params = [year, minPatientAge, maxPatientAge];
             return pool.query(query, params)
                 .then(res => res[0])
-                .catch(error => logger.error(error));
-        },
-        countPatients(month, year) {
-            // Need to count unique patientFile, so that if the same patient came 2 during the month, we will count it as 1
-            const query = "select count(patientFile) from appointments where month(date)=? and year(date)=?";
-            pool.query(query, [month, year]);
-        },
-        countPatientsForAge(minAge, maxAge, month, year) {
-            // Need to make a join with patients on birthDate
-            const query = "select * from appointments where month(date)=? and year(date)=?";
-            const params = [minAge, maxAge, month, year];
-            pool.query(query, params);
-        },
+                .catch(err => logger.error(err));
+        }
+
     },
     timeSlots: {
         addNew(...timeSlots) {
@@ -712,6 +688,5 @@ const database = {
             });
     }
 }
-
 
 module.exports = { database };
