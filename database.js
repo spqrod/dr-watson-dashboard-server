@@ -13,6 +13,7 @@ const pool = mysql.createPool({
 
 const dateFormatForDB = "YYYY-MM-DD";
 
+
 const database = {
     testConnection() {
         pool.query("select 1")
@@ -688,5 +689,8 @@ const database = {
             });
     }
 }
+
+
+
 
 module.exports = { database };
