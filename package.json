@@ -19,5 +19,8 @@
   },
   "scripts": {
     "start": "nodemon app.js"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   }
 }
